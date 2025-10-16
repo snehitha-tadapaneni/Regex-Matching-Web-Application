@@ -32,8 +32,8 @@ python app.py
 ---
 
 ### Requirements.txt
-Flask==3.0.3  |  
-regex==2024.9.11  |  
+Flask==3.0.3    
+regex==2024.9.11    
 MarkupSafe==2.1.5
 
 
