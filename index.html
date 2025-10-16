@@ -1,23 +1,120 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Regex Test</title>
-</head>
-<body>
-    <h1>Regex Test</h1>
-    <form method="post">
-        <label for="test_string">Test String:</label>
-        <input type="text" id="test_string" name="test_string" required>
-        <br>
-        <label for="regex">Regex:</label>
-        <input type="text" id="regex" name="regex" required>
-        <br>
-        <button type="submit">Test</button>
+{% extends 'base.html' %}
+{% block content %}
+<div class="card shadow-sm">
+  <div class="card-body">
+    <h5 class="card-title mb-3">Test your regular expressions</h5>
+
+    <form method="post" class="row g-3">
+      <div class="col-12 col-md-8">
+        <label for="regex" class="form-label">Regex Pattern</label>
+        <input type="text" class="form-control" id="regex" name="regex"
+               placeholder="e.g. (\b[A-Za-z]+)@([\w.-]+)\.(\w+)"
+               value="{{ pattern }}" required>
+        <div class="form-text">Supports flags below. Named groups like <code>(?P<user>...)</code> are displayed too.</div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <label class="form-label">Flags</label>
+        <div class="d-flex flex-wrap gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="IGNORECASE" name="IGNORECASE" {% if flag_values.IGNORECASE %}checked{% endif %}>
+            <label class="form-check-label" for="IGNORECASE">IGNORECASE</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="MULTILINE" name="MULTILINE" {% if flag_values.MULTILINE %}checked{% endif %}>
+            <label class="form-check-label" for="MULTILINE">MULTILINE</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="DOTALL" name="DOTALL" {% if flag_values.DOTALL %}checked{% endif %}>
+            <label class="form-check-label" for="DOTALL">DOTALL</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="VERBOSE" name="VERBOSE" {% if flag_values.VERBOSE %}checked{% endif %}>
+            <label class="form-check-label" for="VERBOSE">VERBOSE</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <label for="test_string" class="form-label">Test String</label>
+        <textarea id="test_string" name="test_string" class="form-control" rows="6"
+                  placeholder="Paste text here (emails, logs, CSV lines, etc.)" required>{{ test_string }}</textarea>
+      </div>
+
+      <div class="col-12 d-flex gap-2 flex-wrap">
+        <button class="btn btn-primary" type="submit">Run</button>
+
+        <!-- sample presets -->
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Try a sample
+          </button>
+          <ul class="dropdown-menu">
+            <li><button class="dropdown-item" type="button"
+                onclick="setSample('(\\b\\w+@\\w+\\.\\w+\\b)', 'Email: jane.doe@example.com and bob@acme.co');">Email</button></li>
+            <li><button class="dropdown-item" type="button"
+                onclick="setSample('(?P<yyy>\\d{4})-(?P<mm>\\d{2})-(?P<dd>\\d{2})', 'Dates: 2024-07-01, 1999-12-31');">Date (named)</button></li>
+            <li><button class="dropdown-item" type="button"
+                onclick="setSample('(?:ERROR|WARN):\\s*(.*)', 'INFO: start\\nERROR: failed X\\nWARN: retrying');">Log levels</button></li>
+          </ul>
+        </div>
+      </div>
     </form>
+
     {% if message %}
-        <p>{{ message }}</p>
+      <div class="alert mt-3 {% if '✅' in message %}alert-success{% elif '❌' in message %}alert-warning{% else %}alert-danger{% endif %}">
+        {{ message|safe }}
+      </div>
     {% endif %}
-</body>
-</html>
+
+    {% if highlighted is not none %}
+      <h6 class="mt-4">Highlighted Matches</h6>
+      <pre class="pretty">{{ highlighted }}</pre>
+    {% endif %}
+
+    {% if matches and groups_header %}
+      <h6 class="mt-4">Match Details</h6>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Span</th>
+              <th>Text</th>
+              {% for h in groups_header %}
+                <th>{{ h }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in matches %}
+              <tr>
+                <td>{{ m.i }}</td>
+                <td><code>{{ m.span }}</code></td>
+                <td><code>{{ m.text }}</code></td>
+                {# positional groups #}
+                {% for i in range(0, groups_header|length) %}
+                  {% set header = groups_header[i] %}
+                  {% if header.startswith('g') and header[1:].isdigit() %}
+                    {% set idx = header[1:]|int - 1 %}
+                    <td><code>{{ m.groups[idx] if m.groups|length > idx else '' }}</code></td>
+                  {% else %}
+                    <td><code>{{ m.named.get(header, '') }}</code></td>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function setSample(pattern, text) {
+    document.getElementById('regex').value = pattern;
+    document.getElementById('test_string').value = text;
+  }
+</script>
+{% endblock %}
